@@ -7,7 +7,7 @@ A modern, high-performance package tracking application built with **Astro** and
 - **🚀 High Performance**: Built on Astro for lightning-fast server-side rendering.
 - **🎨 Modern UI**: Clean, responsive interface styled with Tailwind CSS, matching premium logistical dashboards.
 - **🔄 Dual-Mode Data Visualization**:
-  - **Demo Mode**: Rich, detailed timeline visualization for demonstration purposes (try code: `A412284571-1`).
+  - **Demo Mode**: Rich, detailed timeline visualization for demonstration purposes (try code: `A412284542-1`).
   - **Live Mode**: Real-time data fetching from the Loginext API for all other tracking numbers.
 - **🔒 Secure API Proxy**: Node.js intermediary to handle secure authentication and prevent CORS issues.
 - **📱 Fully Responsive**: Optimized for desktop, tablet, and mobile devices.
@@ -76,7 +76,7 @@ npm run preview
 ### Frontend Logic (`index.astro`)
 The frontend is designed to be fail-safe and user-friendly. It handles the user input and determines how to render the data:
 
-1.  **Input**: User enters a tracking number (e.g., `A412284571-1`).
+1.  **Input**: User enters a tracking number (e.g., `A412284542-1`).
 2.  **Request**: The app sends a POST request to our internal `/api/track` endpoint.
 3.  **Visualization Logic**:
     *   **Demo Scenario**: If the specific demo ID is detected, the app renders a complete, rich timeline with mock events (Recibido, En Tránsito, Entregado) to showcase the UI's full potential.
