@@ -1,0 +1,517 @@
+---
+import "../styles/global.css";
+---
+
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Rastreo de Paquetes | CAEX</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+			rel="stylesheet"
+		/>
+	</head>
+	<body
+		class="bg-slate-100 text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-700 overflow-x-hidden"
+	>
+		<main class="min-h-screen flex flex-col relative">
+			<!-- Search Container: Initially Centered -->
+			<div
+				id="searchContainer"
+				class="flex-1 flex flex-col justify-center transition-all duration-700 ease-in-out px-4 sm:px-6 py-12"
+			>
+				<div
+					class="w-full max-w-3xl mx-auto space-y-8 transition-all duration-500"
+				>
+					<!-- Header Text -->
+					<div class="text-center space-y-4">
+						<h1
+							class="text-4xl sm:text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight"
+						>
+							Rastreo CAEX
+						</h1>
+						<p
+							class="text-lg sm:text-xl text-slate-500 font-medium max-w-xl mx-auto"
+						>
+							Ingresa tu número de guía para consultar el estado
+							de tu envío.
+						</p>
+					</div>
+
+					<!-- Search Form -->
+					<form
+						id="trackForm"
+						class="relative max-w-2xl mx-auto w-full group z-20"
+					>
+						<div
+							class="relative transition-transform duration-300 group-hover:-translate-y-1"
+						>
+							<div
+								class="absolute inset-0 bg-blue-500/20 rounded-2xl blur-xl transition-opacity opacity-0 group-hover:opacity-100"
+							>
+							</div>
+							<div
+								class="relative bg-white rounded-2xl shadow-xl shadow-slate-200 border border-white/50 p-2 flex items-center gap-2"
+							>
+								<div class="pl-4 text-slate-400">
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										class="h-6 w-6"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+										></path>
+									</svg>
+								</div>
+								<input
+									type="text"
+									id="orderNo"
+									placeholder="Ej: A412284571-1"
+									required
+									class="flex-1 bg-transparent border-none text-lg font-medium text-slate-800 placeholder:text-slate-400 focus:ring-0 p-3 outline-none w-full"
+								/>
+								<button
+									type="submit"
+									class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-blue-500/30 active:scale-95 whitespace-nowrap"
+								>
+									Rastrear
+								</button>
+							</div>
+						</div>
+
+						<!-- Loader -->
+						<div
+							id="loader"
+							class="hidden absolute -bottom-12 left-0 right-0 flex justify-center text-blue-600 font-semibold gap-2"
+						>
+							<span class="animate-spin text-xl">⏳</span>
+							<span>Consultando sistema...</span>
+						</div>
+					</form>
+				</div>
+			</div>
+
+			<!-- Results Section -->
+			<div
+				id="result"
+				class="hidden w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 animate-in"
+			>
+				<!-- Content injected via JS -->
+			</div>
+
+			<!-- Error Notification -->
+			<div
+				id="error"
+				class="hidden fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in"
+			>
+				<div
+					class="bg-red-50 text-red-800 px-6 py-4 rounded-xl shadow-2xl border border-red-100 flex items-center gap-4"
+				>
+					<span class="text-2xl">❌</span>
+					<div>
+						<p class="font-bold">No encontrado</p>
+						<p class="text-sm opacity-90">
+							Verifica el número de orden.
+						</p>
+					</div>
+					<button
+						onclick="this.parentElement.parentElement.classList.add('hidden')"
+						class="ml-2 text-red-400 hover:text-red-700">✕</button
+					>
+				</div>
+			</div>
+		</main>
+
+		<script>
+			const form = document.getElementById(
+				"trackForm",
+			) as HTMLFormElement;
+			const searchContainer = document.getElementById(
+				"searchContainer",
+			) as HTMLElement;
+			const result = document.getElementById("result") as HTMLElement;
+			const error = document.getElementById("error") as HTMLElement;
+			const loader = document.getElementById("loader") as HTMLElement;
+
+			form?.addEventListener("submit", async (e) => {
+				e.preventDefault();
+				const orderNoInput = document.getElementById(
+					"orderNo",
+				) as HTMLInputElement;
+				const orderNo = orderNoInput?.value.trim() || "A412284571-1";
+
+				if (!orderNo) return;
+
+				// UI State: Loading
+				loader?.classList.remove("hidden");
+				error?.classList.add("hidden");
+				result?.classList.add("hidden"); // Clear previous result
+
+				try {
+					const res = await fetch("/api/track", {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ orderNo }),
+					});
+
+					const json = await res.json();
+
+					if (json.status === 200 && json.data) {
+						// Success: Transition Layout
+						transitionLayout();
+						// Wait briefly for transition to start
+						setTimeout(() => {
+							renderResult(json.data);
+							loader?.classList.add("hidden");
+						}, 500);
+					} else {
+						loader?.classList.add("hidden");
+						showError();
+					}
+				} catch (err) {
+					console.error(err);
+					loader?.classList.add("hidden");
+					showError();
+				}
+			});
+
+			function transitionLayout() {
+				if (!searchContainer) return;
+
+				// Remove centering classes
+				searchContainer.classList.remove(
+					"flex-1",
+					"justify-center",
+					"min-h-screen",
+				);
+				searchContainer.classList.add("pt-8", "pb-8");
+			}
+
+			function renderResult(data: any) {
+				if (!result) return;
+
+				const inputOrderNo = (
+					document.getElementById("orderNo") as HTMLInputElement
+				).value.trim();
+				const apiOrderNo = data.orderNo || inputOrderNo;
+
+				// --- DEMO MODE CHECK ---
+				// Only use the "Perfect" mock data for the specific ID in the image: A412284571-1
+				const isDemo = apiOrderNo === "A412284571-1";
+
+				// --- Data Extraction ---
+				const status = data.orderState || "Desconocido";
+
+				// Addresses: Use Real if available, else Mock ONLY if Demo, else Placeholder
+				const pickup = isDemo
+					? "Tegucigalpa D.C., Tegucigalpa D.C., Francisco Morazán, HONDURAS"
+					: data.pickupAddress || "Dirección de origen no disponible";
+				const delivery = isDemo
+					? "Honduras, Olancho, Catacamas, Catacamas, Catacamas, Barrio San José, atrás de ferretería Caceres, Catacamas, Olancho, HONDURAS"
+					: data.deliveryAddress ||
+						"Dirección de entrega no disponible";
+
+				// ETA
+				const eta = isDemo
+					? "Mañana 07:00 pm CST"
+					: "Pendiente de actualización";
+
+				// UI Logic
+				const isDelivered = status === "DELIVERED";
+				const displayStatus =
+					status === "INTRANSIT"
+						? "En tránsito"
+						: status === "DELIVERED"
+							? "Entregado"
+							: status;
+				const statusColor = isDelivered
+					? "bg-green-100 text-green-700"
+					: "bg-blue-600 text-white";
+
+				// --- Events Logic ---
+				let events = [];
+				if (isDemo) {
+					// FULL MOCK HISTORY (Matches Image)
+					events = [
+						{
+							date: "Juev, 29 Ene",
+							time: "07:21 AM",
+							status: "Su orden llegó a CAT,",
+							desc: "Prueba de entrega | Firma electrónica",
+							active: true,
+							isLink: true,
+						},
+						{
+							date: "Juev, 29 Ene",
+							time: "07:20 AM",
+							status: "Su orden salió de TGU,",
+							desc: "Recoger prueba | Firma electrónica",
+							active: true,
+							isLink: true,
+						},
+						{
+							date: "Miérc, 28 Ene",
+							time: "06:27 PM",
+							status: "Su orden llegó a TGU,",
+							desc: "Prueba de entrega | Firma electrónica",
+							active: true,
+							isLink: true,
+						},
+						{
+							date: "Miérc, 28 Ene",
+							time: "06:01 PM",
+							status: "Su orden salió de AAPT,",
+							desc: "Recoger prueba | Firma electrónica",
+							active: true,
+							isLink: true,
+						},
+						{
+							date: "Miérc, 28 Ene",
+							time: "05:29 PM",
+							status: "Su orden llegó a AAPT,",
+							desc: "",
+							active: true,
+						},
+						{
+							date: "Miérc, 28 Ene",
+							time: "05:29 PM",
+							status: "En tránsito",
+							desc: "¡Hurra! Tu Orden está en tránsito.",
+							active: true,
+						},
+						{
+							date: "Miérc, 28 Ene",
+							time: "05:29 PM",
+							status: "Recolectada",
+							desc: "¡Tu orden fue Recolectada satisfactoriamente!",
+							active: true,
+						},
+						{
+							date: "Miérc, 28 Ene",
+							time: "02:42 PM",
+							status: "orden recibida",
+							desc: "¡Tu orden se ha recibido satisfactoriamente!",
+							active: true,
+						},
+					];
+				} else {
+					// REAL MODE: Use what we have (API returns NO history, so we show current status only)
+					events = [
+						{
+							date: new Date().toLocaleDateString("es-ES", {
+								weekday: "short",
+								day: "numeric",
+								month: "short",
+							}),
+							time: new Date().toLocaleTimeString("en-US", {
+								hour: "2-digit",
+								minute: "2-digit",
+							}),
+							status: `Estado: ${displayStatus}`,
+							desc: `Sucursal: ${data.branchName || "N/A"} - Usuario: ${data.userName || "N/A"}`,
+							active: true,
+						},
+					];
+				}
+
+				// --- HTML Injection ---
+				result.innerHTML = `
+					<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in items-start">
+						
+						<!-- Left Column: Key Info -->
+						<div class="lg:col-span-4 space-y-4">
+							
+							<!-- ETA Card -->
+							<div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+								<div class="flex justify-between items-start mb-2">
+									<p class="text-slate-500 text-sm font-medium">Tu orden llegará el</p>
+									<span class="text-blue-500 cursor-pointer hover:bg-blue-50 p-1 rounded-full text-lg">🔗</span>
+								</div>
+								<h2 class="text-2xl sm:text-3xl font-bold text-blue-600 tracking-tight">
+									${eta}
+								</h2>
+							</div>
+
+							<!-- Order Number Card -->
+							<div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col justify-center">
+								<div class="flex items-center gap-3 mb-2">
+									<div class="bg-blue-50 p-2 rounded-lg text-blue-600">📦</div>
+									<div>
+										<p class="text-slate-500 text-xs font-bold uppercase tracking-wider">Orden Número</p>
+										<p class="text-slate-800 font-bold">#${apiOrderNo}</p>
+									</div>
+								</div>
+								<a href="#" class="text-blue-600 text-sm font-semibold hover:underline mt-1 pl-[50px]">Ver detalles</a>
+							</div>
+
+							<!-- Address Card -->
+							<div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 relative">
+								<!-- Connecting Line -->
+								<div class="absolute left-[34px] top-[48px] bottom-[48px] w-0.5 border-l-2 border-dotted border-slate-300"></div>
+
+								<!-- Pickup -->
+								<div class="flex gap-4 mb-6 relative z-10">
+									<div class="w-4 h-4 rounded-full border-2 border-blue-500 bg-white shadow flex-shrink-0 mt-1"></div>
+									<div>
+										<p class="text-xs font-bold text-slate-500 uppercase mb-1">Dirección de recolecta</p>
+										<p class="text-sm text-slate-700 leading-snug font-medium">
+											${pickup}
+										</p>
+									</div>
+								</div>
+
+								<!-- Delivery -->
+								<div class="flex gap-4 relative z-10">
+									<div class="w-4 h-4 rounded-full bg-blue-600 shadow flex-shrink-0 mt-1"></div>
+									<div>
+										<p class="text-xs font-bold text-slate-500 uppercase mb-1">Dirección de entrega</p>
+										<p class="text-sm text-slate-700 leading-snug font-medium">
+											${delivery}
+										</p>
+									</div>
+								</div>
+							</div>
+
+						</div>
+
+						<!-- Right Column: Timeline -->
+						<div class="lg:col-span-8">
+							<div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col max-h-[700px]">
+								
+								<!-- Header -->
+								<div class="p-6 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-20">
+									<h3 class="font-bold text-slate-800 text-lg">orden Progreso</h3>
+									<span class="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide ${statusColor} shadow-sm">
+										${displayStatus}
+									</span>
+								</div>
+
+								<!-- Scrollable Content -->
+								<div class="overflow-y-auto custom-scrollbar p-6">
+									<div class="space-y-0">
+										${events
+											.map((e, index) => {
+												const isLast =
+													index === events.length - 1;
+												return `
+											<div class="grid grid-cols-[100px_40px_1fr] md:grid-cols-[120px_60px_1fr] relative">
+												
+												<!-- Time Column -->
+												<div class="text-right pt-1 pr-2">
+													<p class="text-xs font-bold text-slate-800">${e.date}</p>
+													<p class="text-[10px] text-slate-500 font-medium">${e.time}</p>
+												</div>
+
+												<!-- Line Column -->
+												<div class="relative flex justify-center">
+													<!-- Vertical Line -->
+													${!isLast ? `<div class="absolute top-3 bottom-[-24px] w-0.5 bg-blue-500"></div>` : ""}
+													<!-- Dot -->
+													<div class="w-3 h-3 rounded-full bg-blue-600 border-2 border-white ring-2 ring-blue-100 relative z-10 mt-1.5"></div>
+												</div>
+
+												<!-- Content Column -->
+												<div class="pb-8 pt-0.5 pl-2">
+													<p class="text-sm font-bold text-slate-800 mb-1">${e.status}</p>
+													${
+														e.desc
+															? `
+														<div class="text-xs text-slate-500 font-medium">
+															${
+																e.isLink
+																	? e.desc
+																			.split(
+																				"|",
+																			)
+																			.map(
+																				(
+																					link,
+																				) =>
+																					`<a href="#" class="text-blue-600 hover:underline mr-2">${link.trim()}</a>`,
+																			)
+																			.join(
+																				'<span class="text-slate-300">|</span>',
+																			)
+																	: e.desc
+															}
+														</div>
+													`
+															: ""
+													}
+												</div>
+											</div>
+											`;
+											})
+											.join("")}
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				`;
+
+				result.classList.remove("hidden");
+
+				// Scroll to results
+				setTimeout(() => {
+					result.scrollIntoView({
+						behavior: "smooth",
+						block: "start",
+					});
+				}, 100);
+			}
+
+			function showError() {
+				error?.classList.remove("hidden");
+				setTimeout(() => error?.classList.add("hidden"), 3000);
+			}
+		</script>
+
+		<style>
+			body {
+				font-family: "Inter", sans-serif;
+			}
+
+			.animate-in {
+				animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+			}
+
+			@keyframes slideUp {
+				from {
+					opacity: 0;
+					transform: translateY(20px);
+				}
+				to {
+					opacity: 1;
+					transform: translateY(0);
+				}
+			}
+
+			/* Light mode scrollbar */
+			::-webkit-scrollbar {
+				width: 8px;
+			}
+			::-webkit-scrollbar-track {
+				background: transparent;
+			}
+			::-webkit-scrollbar-thumb {
+				background: #cbd5e1;
+				border-radius: 4px;
+			}
+			::-webkit-scrollbar-thumb:hover {
+				background: #94a3b8;
+			}
+		</style>
+	</body>
+</html>

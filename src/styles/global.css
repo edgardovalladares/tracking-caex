@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+/* 
+  Minimal Global Styles 
+  We rely on standard Tailwind utilities for 99% of styling.
+*/
+
+html,
+body {
+    height: 100%;
+    width: 100%;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Leaflet Popup Overrides to match design */
+.leaflet-popup-content-wrapper {
+    @apply rounded-xl shadow-xl p-0 overflow-hidden;
+}
+
+.leaflet-popup-content {
+    @apply m-0 p-4 font-sans text-sm;
+}
+
+.leaflet-popup-tip-container {
+    @apply mt-[-1px];
+}
